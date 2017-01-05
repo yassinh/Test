@@ -1,0 +1,64 @@
+﻿@model IEnumerable<DevTest.Models.DevTest>
+
+<br/>
+<p>
+    @Html.ActionLink("Create New", "Create")
+</p>
+<br/>
+<table class="table">
+    <tr>
+        <th>@Html.DisplayNameFor(model => model.ID)</th>
+        <th>
+            @Html.DisplayNameFor(model => model.CampaignName)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.Date)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.Clicks)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.Impressions)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.AffiliateName)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.Conversions)
+        </th>
+        <th></th>
+
+    </tr>
+
+    @foreach (var item in Model)
+    {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.ID)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.CampaignName)
+            </td>
+            <th>
+                @Html.DisplayFor(modelItem => item.Date)
+            </th>
+            <td>
+                @Html.DisplayFor(modelItem => item.Clicks)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Impressions)
+            </td>
+            <th>
+                @Html.DisplayFor(modelItem => item.AffiliateName)
+            </th>
+            <td>
+                @Html.DisplayFor(modelItem => item.Conversions)
+            </td>
+            <td>
+                <a href="/home/Edit/@item.ID">Edit</a> |
+                <a href="/home/Delete/@item.ID">Delete</a>
+            </td>
+        </tr>
+    }
+
+</table>
