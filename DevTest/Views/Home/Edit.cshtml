@@ -8,7 +8,30 @@
 @using (Html.BeginForm())
 {
     @Html.AntiForgeryToken()
-    
+
+    if (TempData.ContainsKey("saved"))
+    {
+        foreach (var value in TempData.Values)
+        {
+            <script>
+             $.growl.notice({ message: "@value.ToString()" });
+            </script>
+        }
+        TempData.Remove("saved");
+
+    }
+
+    if (TempData.ContainsKey("error"))
+    {
+        foreach (var value in TempData.Values)
+        {
+            <script>
+            $.growl.error({ message: "@value.ToString()" });
+            </script>
+        }
+        TempData.Remove("error");
+    }
+
     <div class="form-horizontal">
         <h4>Dev Test</h4>
         <hr />

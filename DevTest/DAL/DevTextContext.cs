@@ -6,6 +6,7 @@ using System.Configuration;
 using System.Data.Entity;
 using System.Data.SqlClient;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Web;
 
 namespace DevTest.DAL
@@ -26,96 +27,25 @@ namespace DevTest.DAL
         }
     }
 
-    public class TestRepository : ITestRepository, IDisposable
+    public class UnitOfWork : IDisposable
     {
-        private DevTestContext context;
+        private DevTestContext context = new DevTestContext();
+        private GenericRepository<Models.DevTest> testRepository;
 
-        public TestRepository(DevTestContext context)
+        public GenericRepository<Models.DevTest> TestRepository
         {
-            this.context = context;
-        }
-
-        public List<Models.DevTest> GetTests()
-        {
-            return context.DevTest.ToList();
-        }
-
-        public List<Models.DevTest> GetTestsMessages()
-        {
-            string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
-
-            string commandText = null;
-
-            using (var db = new DevTestContext())
+            get
             {
-                var query = db.DevTest as System.Data.Entity.Infrastructure.DbQuery<Models.DevTest>;
 
-                commandText = query.ToString();
-            }
-
-            using (SqlConnection connection = new SqlConnection(connectionString))
-            {
-                List<Models.DevTest> messages = new List<Models.DevTest>();
-
-                using (SqlCommand command = new SqlCommand(commandText, connection))
+                if (this.testRepository == null)
                 {
-                    connection.Open();
-
-                    var sqlDependency = new SqlDependency(command);
-
-                    sqlDependency.OnChange += new OnChangeEventHandler(sqlDependency_OnChange);
-
-                    var reader = command.ExecuteReader();
-
-                    while (reader.Read())
-                    {
-                        messages.Add(item: new Models.DevTest
-                        {
-                            ID = (int)reader["ID"],
-                            CampaignName = (string)reader["CampaignName"],
-                            AffiliateName = reader["AffiliateName"] != DBNull.Value ? (string)reader["AffiliateName"] : "",
-                            Date = Convert.ToDateTime(reader["Date"]),
-                            Clicks = (int)reader["Clicks"],
-                            Conversions = (int)reader["Conversions"],
-                            Impressions = (int)reader["Impressions"],
-                        });
-                    }
+                    this.testRepository = new GenericRepository<Models.DevTest>(context);
                 }
-                return messages;
-            }
-        }
-            
-        
-        
-
-        private void sqlDependency_OnChange(object sender, SqlNotificationEventArgs e)
-        {
-            if (e.Type == SqlNotificationType.Change)
-            {
-                messagesHub.SendMessages();
+                return testRepository;
             }
         }
 
-        public Models.DevTest GetTestByID(int id)
-        {
-            return context.DevTest.Find(id);
-        }
-
-        public void InsertTest(Models.DevTest Test)
-        {
-            context.DevTest.Add(Test);
-        }
-
-        public void DeleteTest(int TestID)
-        {
-            Models.DevTest Test = context.DevTest.Find(TestID);
-            context.DevTest.Remove(Test);
-        }
-
-        public void UpdateTest(Models.DevTest Test)
-        {
-            context.Entry(Test).State = EntityState.Modified;
-        }
+        
 
         public void Save()
         {
@@ -142,14 +72,120 @@ namespace DevTest.DAL
             GC.SuppressFinalize(this);
         }
     }
-    public interface ITestRepository : IDisposable
+
+    public class GenericRepository<TEntity> where TEntity : class
     {
-        List<Models.DevTest> GetTests();
-        Models.DevTest GetTestByID(int ID);
-        void InsertTest(Models.DevTest test);
-        void DeleteTest(int ID);
-        void UpdateTest(Models.DevTest test);
-        List<Models.DevTest> GetTestsMessages();
-        void Save();
+        internal DevTestContext context;
+        internal DbSet<TEntity> dbSet;
+
+        public GenericRepository(DevTestContext context)
+        {
+            this.context = context;
+            this.dbSet = context.Set<TEntity>();
+        }
+
+        public virtual IEnumerable<TEntity> Get(
+           Expression<Func<TEntity, bool>> filter = null,
+           Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>> orderBy = null,
+           string includeProperties = "")
+        {
+            IQueryable<TEntity> query = dbSet;
+
+            if (filter != null)
+            {
+                query = query.Where(filter);
+            }
+
+            foreach (var includeProperty in includeProperties.Split
+                (new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                query = query.Include(includeProperty);
+            }
+
+            if (orderBy != null)
+            {
+                return orderBy(query).ToList();
+            }
+            else
+            {
+                return query.ToList();
+            }
+        }
+
+        public virtual TEntity GetByID(object id)
+        {
+            return dbSet.Find(id);
+        }
+
+        public virtual void Insert(TEntity entity)
+        {
+            dbSet.Add(entity);
+        }
+
+        public virtual void Delete(object id)
+        {
+            TEntity entityToDelete = dbSet.Find(id);
+            Delete(entityToDelete);
+        }
+
+        public virtual void Delete(TEntity entityToDelete)
+        {
+            if (context.Entry(entityToDelete).State == EntityState.Detached)
+            {
+                dbSet.Attach(entityToDelete);
+            }
+            dbSet.Remove(entityToDelete);
+        }
+
+        public virtual void Update(TEntity entityToUpdate)
+        {
+            dbSet.Attach(entityToUpdate);
+            context.Entry(entityToUpdate).State = EntityState.Modified;
+        }
+
+        public List<TEntity> GetTestsMessages()
+        {
+           
+
+            string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
+
+            string commandText = null;
+
+            using (var db = new DevTestContext())
+            {
+                var query = db.DevTest as System.Data.Entity.Infrastructure.DbQuery<TEntity>;
+
+                commandText = query.ToString();
+            }
+
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                List<TEntity> messages = new List<TEntity>();
+
+                using (SqlCommand command = new SqlCommand(commandText, connection))
+                {
+                    connection.Open();
+
+                    var sqlDependency = new SqlDependency(command);
+
+                    sqlDependency.OnChange += new OnChangeEventHandler(sqlDependency_OnChange);
+
+                    var reader = command.ExecuteReader();
+
+                    messages = this.Get().ToList();
+                }
+                return messages;
+            }
+        }
+
+        private void sqlDependency_OnChange(object sender, SqlNotificationEventArgs e)
+        {
+            if (e.Type == SqlNotificationType.Change)
+            {
+                messagesHub.SendMessages();
+            }
+        }
     }
+    
+   
 }

@@ -10,7 +10,6 @@ namespace DevTest.Hubs
 {
     public class messagesHub : Hub
     {
-        private static string conString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ToString();
         public void Hello()
         {
             Clients.All.hello();

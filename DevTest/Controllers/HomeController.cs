@@ -9,7 +9,7 @@ namespace DevTest.Controllers
 {
     public class HomeController : Controller
     {
-        private ITestRepository testRepository;
+        private UnitOfWork unitOfWork = new UnitOfWork();
 
         public ActionResult Index()
         {
@@ -18,9 +18,9 @@ namespace DevTest.Controllers
 
         public ActionResult GetMesages()
         {
-            this.testRepository = new DAL.TestRepository(new DevTestContext());
-            List<Models.DevTest> lst = testRepository.GetTestsMessages();
-            return PartialView("_messagesList", lst);
+            var tests = unitOfWork.TestRepository.GetTestsMessages();
+            TempData.Add("saved", "Your information has been updated!");
+            return PartialView("_messagesList", tests);
 
         }
 
@@ -28,18 +28,16 @@ namespace DevTest.Controllers
         {
             int id = int.Parse(ID);
 
-            this.testRepository = new DAL.TestRepository(new DevTestContext());
-            testRepository.DeleteTest(id);
-            testRepository.Save();
+            unitOfWork.TestRepository.Delete(id);
+            unitOfWork.Save();
 
+            TempData.Add("saved", "Your information has been saved!");
             return View("Index");
         }
 
         public ActionResult Edit(string ID)
         {
-            this.testRepository = new DAL.TestRepository(new DevTestContext());
-
-            return View("Edit", testRepository.GetTestByID(int.Parse(ID)));
+            return View("Edit", unitOfWork.TestRepository.GetByID(int.Parse(ID)));
         }
 
         [HttpPost]
@@ -48,12 +46,14 @@ namespace DevTest.Controllers
 
             if (ModelState.IsValid)
             {
+                unitOfWork.TestRepository.Update(test);
+                unitOfWork.Save();
 
-                this.testRepository = new DAL.TestRepository(new DevTestContext());
-                testRepository.UpdateTest(test);
-                testRepository.Save();
+                if (TempData.ContainsKey("saved"))
+                    TempData.Remove("saved");
 
-                return RedirectToAction("Index");
+                TempData.Add("saved", "Your information has been saved!");
+                return View("Edit");
             }
 
             return View("Edit");
@@ -67,18 +67,14 @@ namespace DevTest.Controllers
         [HttpPost]
         public ActionResult Create(Models.DevTest test)
         {
-
             if (ModelState.IsValid)
             {
+                unitOfWork.TestRepository.Insert(test);
+                unitOfWork.Save();
 
-                this.testRepository = new DAL.TestRepository(new DevTestContext());
-                testRepository.InsertTest(test);
-                testRepository.Save();
-
-                return RedirectToAction("Index");
+                TempData.Add("saved", "Your information has been saved!");
+                return View("Index");
             }
-
-            
 
             return View("Create");
         }

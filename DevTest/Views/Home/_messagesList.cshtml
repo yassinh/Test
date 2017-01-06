@@ -5,6 +5,29 @@
     @Html.ActionLink("Create New", "Create")
 </p>
 <br/>
+
+@if (TempData.ContainsKey("saved"))
+    {
+        foreach (var value in TempData.Values)
+        {
+<script>
+             $.growl.notice({ message: "@value.ToString()" });
+</script>
+        }
+        TempData.Remove("saved");
+
+    }
+
+    @if (TempData.ContainsKey("error"))
+    {
+        foreach (var value in TempData.Values)
+        {
+<script>
+            $.growl.error({ message: "@value.ToString()" });
+</script>
+        }
+        TempData.Remove("error");
+    }
 <table class="table">
     <tr>
         <th>@Html.DisplayNameFor(model => model.ID)</th>
