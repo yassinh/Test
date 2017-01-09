@@ -27,7 +27,7 @@ namespace DevTest.DAL
         }
     }
 
-    public class UnitOfWork : IDisposable
+    public class UnitOfWork : IDisposable, IUnitOfWork
     {
         private DevTestContext context = new DevTestContext();
         private GenericRepository<Models.DevTest> testRepository;
@@ -73,7 +73,7 @@ namespace DevTest.DAL
         }
     }
 
-    public class GenericRepository<TEntity> where TEntity : class
+    public class GenericRepository<TEntity> : IGenericRepository<TEntity> where TEntity : class
     {
         internal DevTestContext context;
         internal DbSet<TEntity> dbSet;
