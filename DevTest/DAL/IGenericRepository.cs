@@ -13,5 +13,6 @@ namespace DevTest.DAL
         TEntity GetByID(object id);
         void Insert(TEntity entity);
         void Update(TEntity entityToUpdate);
+        IEnumerable<TEntity> GetTestsMessages();
     }
 }

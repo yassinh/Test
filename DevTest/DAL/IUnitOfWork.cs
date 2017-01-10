@@ -2,9 +2,9 @@
 
 namespace DevTest.DAL
 {
-    public interface IUnitOfWork
+    public interface IUnitOfWork<TEntity> where TEntity : class
     {
-        GenericRepository<Models.DevTest> TestRepository { get; }
+        IGenericRepository<TEntity> TestRepository { get; }
 
         void Dispose();
         void Save();

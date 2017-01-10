@@ -1,4 +1,5 @@
-﻿using DevTest.Hubs;
+﻿using DevTest.DAL;
+using DevTest.Hubs;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -8,6 +9,7 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Web;
+using DevTest.Models;
 
 namespace DevTest.DAL
 {
@@ -27,25 +29,23 @@ namespace DevTest.DAL
         }
     }
 
-    public class UnitOfWork : IDisposable, IUnitOfWork
+    public class UnitOfWork<TEntity> : IDisposable, IUnitOfWork<TEntity> where TEntity : class
     {
         private DevTestContext context = new DevTestContext();
-        private GenericRepository<Models.DevTest> testRepository;
+        private GenericRepository<TEntity> testRepository;
 
-        public GenericRepository<Models.DevTest> TestRepository
+        public IGenericRepository<TEntity> TestRepository
         {
             get
             {
 
                 if (this.testRepository == null)
                 {
-                    this.testRepository = new GenericRepository<Models.DevTest>(context);
+                    this.testRepository = new GenericRepository<TEntity>(context);
                 }
                 return testRepository;
             }
         }
-
-        
 
         public void Save()
         {
@@ -143,10 +143,16 @@ namespace DevTest.DAL
             context.Entry(entityToUpdate).State = EntityState.Modified;
         }
 
-        public List<TEntity> GetTestsMessages()
+        private void sqlDependency_OnChange(object sender, SqlNotificationEventArgs e)
         {
-           
+            if (e.Type == SqlNotificationType.Change)
+            {
+                messagesHub.SendMessages();
+            }
+        }
 
+        IEnumerable<TEntity> IGenericRepository<TEntity>.GetTestsMessages()
+        {
             string connectionString = ConfigurationManager.ConnectionStrings["DefaultConnection"].ConnectionString;
 
             string commandText = null;
@@ -175,14 +181,6 @@ namespace DevTest.DAL
                     messages = this.Get().ToList();
                 }
                 return messages;
-            }
-        }
-
-        private void sqlDependency_OnChange(object sender, SqlNotificationEventArgs e)
-        {
-            if (e.Type == SqlNotificationType.Change)
-            {
-                messagesHub.SendMessages();
             }
         }
     }

@@ -9,7 +9,7 @@ namespace DevTest.Controllers
 {
     public class HomeController : Controller
     {
-        private UnitOfWork unitOfWork = new UnitOfWork();
+        private IUnitOfWork<Models.DevTest> unitOfWork = new UnitOfWork<Models.DevTest>();
 
         public ActionResult Index()
         {
